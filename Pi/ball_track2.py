@@ -53,7 +53,7 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
                         cv2.circle(image, (int(x), int(y)), int(radius), (0, 255, 255), 2)
                         cv2.circle(image, center, 5, (0,0, 255), -1)
                         print center
-                        #ser.write(str(center))
+                        ser.write(str(center))
                         #str(int(M["m10"] / M["m00"])) + "," + str(int(M["m01"] / M["m00"]))
 
  

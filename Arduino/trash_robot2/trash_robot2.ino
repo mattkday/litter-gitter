@@ -19,13 +19,10 @@ void loop(){
 }
 
 void serialEvent(){
-  int tx, ty;
-  while (Serial.available()>0) {
-    int tx = Serial.parseInt();
-    int ty = Serial.parseInt();
-    if (tx >0 && ty >0 && Serial.available() < 2) {
-      x = tx;
-      y = ty;
+  while (Serial.available()) {
+    x = Serial.parseInt();
+    y = Serial.parseInt();
+    if (Serial.available() == 1) {
       getObject();
       Serial.println(x);
       Serial.println(y);
