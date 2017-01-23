@@ -14,7 +14,7 @@ int directionPin_M2 = 7;     //M1 Direction Control
 void setup(){
   Serial.begin(9600);
   pinMode(speedPin_M1, OUTPUT);
-  pinMode(speedPjn_M2, OUTPUT);
+  pinMode(speedPin_M2, OUTPUT);
   pinMode(directionPin_M1, OUTPUT);
   pinMode(directionPin_M2, OUTPUT);
 }

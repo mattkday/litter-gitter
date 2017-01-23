@@ -1,22 +1,11 @@
-//. Motor driver shield- 2012 Copyright (c) Seeed Technology Inc.
-// 
-//  Original Author: Jimbo.we
-//  Contribution: LG
-//  
-//  This library is free software; you can redistribute it and/or
-//  modify it under the terms of the GNU Lesser General Public
-//  License as published by the Free Software Foundation; either
-//  version 2.1 of the License, or (at your option) any later version.
-//
-//  This library is distributed in the hope that it will be useful,
-//  but WITHOUT ANY WARRANTY; without even the implied warranty of
-//  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-//  Lesser General Public License for more details.
-//
-//  You should have received a copy of the GNU Lesser General Public
-//  License along with this library; if not, write to the Free Software
-//  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-
+int x;
+int y;
+int w = 1024/4;
+int h = 768/4;
+int leftTrig = w*0.2;
+int rightTrig = w*0.8;
+int leftLed = 10;
+int rightLed = 11;
 int pinI1=8;//define I1 interface
 int pinI2=11;//define I2 interface 
 int speedpinA=9;//enable motor A
@@ -27,6 +16,7 @@ int spead =250;//define the spead of motor
  
 void setup()
 {
+  Serial.begin(9600);
   pinMode(pinI1,OUTPUT);
   pinMode(pinI2,OUTPUT);
   pinMode(speedpinA,OUTPUT);
@@ -35,6 +25,49 @@ void setup()
   pinMode(speedpinB,OUTPUT);
 }
  
+void serialEvent(){
+  while (Serial.available()) {
+    x = Serial.parseInt();
+    y = Serial.parseInt();
+    if (Serial.available() == 1) {
+      getObject();
+      Serial.println(x);
+      Serial.println(y);
+    }  
+  }
+}
+
+void getObject(){
+  //stop motors
+  stopm();
+  delay(800);
+  if (x < leftTrig || x == leftTrig) {
+    //turn left
+    Serial.println("left");
+    left();
+    delay(200);
+    stopm();
+  } 
+  else if (x > rightTrig || x == rightTrig) {
+    //turn right
+    Serial.println("right");
+    right();
+    delay(200);
+    stopm();
+  } 
+  else if (x > leftTrig && x < rightTrig) {
+    //drive forward
+    Serial.println("middle");
+    //see if close to capture
+    forward();
+    delay(200);
+    stopm();
+  } 
+  else {
+    Serial.println("No Value");
+  }
+}
+
 void forward()
 {
      analogWrite(speedpinA,spead);//input a simulation value to set the speed
@@ -71,27 +104,14 @@ void right()//
      digitalWrite(pinI2,LOW);//turn DC Motor A move clockwise
      digitalWrite(pinI1,HIGH);
 }
-void stopc()//
+void stopm()//
 {
      digitalWrite(speedpinA,LOW);// Unenble the pin, to stop the motor. this should be done to avid damaging the motor. 
      digitalWrite(speedpinB,LOW);
-     delay(1000);
  
 }
 
 void loop()
 {
-  left();
-  delay(2000);
-  stopc();
-  right();
-  delay(2000);
-  stopc();
- // delay(2000);
-  forward();
-  delay(2000);
-  stopc();
-  backward();
-  delay(2000); 
-  stopc(); 
+  stopm();
 }
