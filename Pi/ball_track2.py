@@ -29,7 +29,7 @@ upper = (70,255,250)
 
 # allow the camera to warmup
 time.sleep(0.1)
- 
+
 # capture frames from the camera
 for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
     # grab current frame from camera
@@ -55,7 +55,7 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
             cv2.circle(image, center, 5, (0,0, 255), -1)
             print center
             #ser.write(str(center))
-            
+
             # send the object's points to the Arduino for further use
             try:
                 bus.write_byte_data(address, 0x01, int(M["m10"] / M["m00"]))
@@ -64,15 +64,15 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
             except IOError:
                 sys.stderr.write("*** error: sending points ***\n")
 
- 
+
     # show the frame
     cv2.imshow("Frame", image)
     #cv2.imshow("Frame2", mask)
     key = cv2.waitKey(1) & 0xFF
- 
+
     # clear the stream in preparation for the next frame
     rawCapture.truncate(0)
- 
+
     # if the `q` key was pressed, break from the loop
     if key == ord("q"):
-        break      
+        break
