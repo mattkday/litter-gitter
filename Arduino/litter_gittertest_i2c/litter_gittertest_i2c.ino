@@ -40,6 +40,7 @@ void setup()
 
 void loop()
 {
+  delay(100);
   stopm();
 }
 
@@ -48,25 +49,21 @@ void receiveEvent(int bytes) {
 
   // Get object's points
   if (sentPoint == 0x01 && bytes > 1) {
-    int x = Wire.read();
+    x = Wire.read();
     Serial.println("Object Found:");
     Serial.print(x);
   }
   else if (sentPoint == 0x02 && bytes > 1) {
-    int y = Wire.read();
+    y = Wire.read();
     isUpdated = true;
     Serial.print(", ");
     Serial.println(y);
+    getObject();
   }
 
   // Clear all remaining bytes
   while (Wire.available()) {
     Wire.read();
-  }
-  // If both points are updated, get the object
-  if (isUpdated){
-    isUpdated = false;
-    getObject();
   }
 }
 
@@ -81,21 +78,21 @@ void getObject(){
   delay(800);
   if (x < leftTrig || x == leftTrig) {
     //turn left
-    Serial.println("left");
+    Serial.println("Left");
     left();
     delay(200);
     stopm();
   } 
   else if (x > rightTrig || x == rightTrig) {
     //turn right
-    Serial.println("right");
+    Serial.println("Right");
     right();
     delay(200);
     stopm();
   } 
   else if (x > leftTrig && x < rightTrig) {
     //drive forward
-    Serial.println("middle");
+    Serial.println("Forward");
     //see if close to capture
     forward();
     delay(200);

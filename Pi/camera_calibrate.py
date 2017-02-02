@@ -1,17 +1,8 @@
 from picamera.array import PiRGBArray
 from picamera import PiCamera
-import sys
 import time
-#import serial
-import smbus
 import cv2
 import numpy as np;
-
-#ser = serial.Serial('/dev/ttyACM0', 9600)
-bus = smbus.SMBus(1)
-
-#Arduino address
-address = 0x04
 
 # initialize the camera and grab a reference to the raw camera capture
 camera = PiCamera()
@@ -19,13 +10,28 @@ camera = PiCamera()
 #camera.resolution = (480, 320)
 camera.resolution = (1024/4, 768/4)
 camera.framerate = 32
+
+##camera.iso = 900
+##
+###time.sleep(2)
+##
+##print("Expo Speed:")
+##print(camera.exposure_speed)
+##camera.shutter_speed = 31098
+##camera.exposure_mode = 'off'
+##g= camera.awb_gains
+##camera.awb_mode = 'off'
+##camera.awb_gains = g
+##print("awb gains:")
+##print(g)
+
 rawCapture = PiRGBArray(camera, size=(1024/4, 768/4))
 
 #lower = (20,100,150)
-#upper = (95,255,255)
-
-lower = (40,230,40)
-upper = (70,255,250)
+#upper = (95,255,254)
+#230
+lower = (30,130,40)
+upper = (90,255,250)
 
 # allow the camera to warmup
 time.sleep(0.1)
@@ -53,20 +59,9 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
         if radius > 20:
             cv2.circle(image, (int(x), int(y)), int(radius), (0, 255, 255), 2)
             cv2.circle(image, center, 5, (0,0, 255), -1)
-            print center
-            #ser.write(str(center))
-
-            # send the object's points to the Arduino for further use
-            try:
-                bus.write_byte_data(address, 0x01, int(M["m10"] / M["m00"]))
-                time.sleep(0.01)
-                bus.write_byte_data(address, 0x02, int(M["m01"] / M["m00"]))
-            except IOError:
-                sys.stderr.write("*** error: sending points ***\n")
-
-
+            
     # show the frame
-    #cv2.imshow("Frame", image)
+    cv2.imshow("Frame", image)
     cv2.imshow("Frame2", mask)
     key = cv2.waitKey(1) & 0xFF
 
