@@ -2,6 +2,7 @@ from picamera.array import PiRGBArray
 from picamera import PiCamera
 import sys
 import time
+import RPi.GPIO as GPIO
 #import serial
 import smbus
 import cv2
@@ -9,6 +10,9 @@ import numpy as np;
 
 #ser = serial.Serial('/dev/ttyACM0', 9600)
 bus = smbus.SMBus(1)
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(10, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 #Arduino address
 address = 0x04
@@ -24,8 +28,11 @@ rawCapture = PiRGBArray(camera, size=(1024/4, 768/4))
 #lower = (20,100,150)
 #upper = (95,255,255)
 
-lower = (40,230,40)
-upper = (70,255,250)
+##lower = (10,230,40)
+##upper = (120,255,250)
+
+lower = (60,130,50)
+upper = (100,255,250)
 
 # allow the camera to warmup
 time.sleep(0.1)
@@ -55,19 +62,21 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
             cv2.circle(image, center, 5, (0,0, 255), -1)
             print center
             #ser.write(str(center))
-
-            # send the object's points to the Arduino for further use
-            try:
-                bus.write_byte_data(address, 0x01, int(M["m10"] / M["m00"]))
-                time.sleep(0.01)
-                bus.write_byte_data(address, 0x02, int(M["m01"] / M["m00"]))
-            except IOError:
-                sys.stderr.write("*** error: sending points ***\n")
+            if GPIO.input(10):
+                # send the object's points to the Arduino for further use
+                try:
+                    bus.write_byte_data(address, 0x01, int(M["m10"] / M["m00"]))
+                    time.sleep(0.01)
+                    bus.write_byte_data(address, 0x02, int(M["m01"] / M["m00"]))
+                except IOError:
+                    sys.stderr.write("*** error: sending points ***\n")
+            else:
+                sys.stderr.write("*** Points were not sent ***\n")
 
 
     # show the frame
-    #cv2.imshow("Frame", image)
-    cv2.imshow("Frame2", mask)
+    cv2.imshow("Frame", image)
+    #cv2.imshow("Frame2", mask)
     key = cv2.waitKey(1) & 0xFF
 
     # clear the stream in preparation for the next frame
@@ -75,4 +84,5 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
 
     # if the `q` key was pressed, break from the loop
     if key == ord("q"):
+        GPIO.cleanup()
         break
