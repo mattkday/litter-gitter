@@ -14,10 +14,8 @@ SharpIR sharpL(irL, 25, 93, model);
 SharpIR sharpR(irR, 25, 93, model);
 Servo myservo;
 
-
 int x;
 int y;
-boolean isUpdated= false;
 boolean searching = true;
 boolean looking = true;
 boolean start = true;
@@ -30,6 +28,7 @@ int leftTrig = w*0.2;
 int rightTrig = w*0.8;
 int GateThresh = 60;
 int NormThresh = 40;
+int SlowThresh = NormThresh + 25;
 int distL = sharpL.distance();
 int distR = sharpR.distance();
 int side = 1;            //Left = 0    Right = 1
@@ -42,21 +41,20 @@ int directionPin_M2 = 7;     //M1 Direction Control
 void setup(){
   Serial.begin(9600);
   
-//  if(!bno.begin())
-//  {
-//    /* There was a problem detecting the BNO055 ... check your connections */
-//    Serial.print("Ooops, no BNO055 detected ... Check your wiring or I2C ADDR!");
-//    while(1);
-//  }
+  if(!bno.begin())
+  {
+    // There was a problem detecting the BNO055
+    Serial.print("Ooops, no BNO055 detected");
+    while(1);
+  }
   delay(1000);
   bno.setExtCrystalUse(true);
+  // Attach the servo
   myservo.attach(9);
-  
   // Initialize i2c as slave
   Wire.begin(SLAVE_ADDRESS);
   // Define callbacks for i2c communication
   Wire.onReceive(receiveEvent);
-  Wire.onRequest(requestEvent);
   // Pi pin
   pinMode(PiPin, OUTPUT);
   // Initialize motor driver pins
@@ -81,7 +79,7 @@ void loop(){
     searching = true;
     Serial.println("avoid obst again");
   }
-  //searching
+  // searching
   if (searching) {
     piOff();
     distL = sharpL.distance();
@@ -89,7 +87,6 @@ void loop(){
     //drive in pattern
     if (start) {
       start = false;
-      piOff();
       advance();
       if (side == 1) {
         turnToLeft();
@@ -109,33 +106,30 @@ void loop(){
       Serial.println(distR);
     }
     else if (distL <= NormThresh || distR <= NormThresh) {
+      // if @ a wall decide whether to go left or right
       piOff();
       Serial.println("dist");
       Serial.println(distL);
       Serial.println(distR);
+      //turn, move forward, then turn again to search
+      carStop(); 
+      Serial.println("turn");
+      turnToZero();
+      advance();
       if (side == 1) {
-        carStop();
-        Serial.println("turn");
-        turnToZero();
-        advance();
         turnToLeft();
-        carStop();
         side = 0;
       }
       else if (side == 0) {
-        carStop();
-        Serial.println("turn");
-        turnToZero();
-        advance();
         turnToRight();
-        carStop();
         side = 1;
       }
+      carStop();
       carAdvance(155,155);
       piOn();
       Serial.println("search");
     }
-    else if (distL <= NormThresh+20 || distR <= NormThresh+20) {
+    else if (distL <= SlowThresh || distR <= SlowThresh) {
       Serial.println("Slow Down");
       carAdvance(120,120);
     }
@@ -148,18 +142,16 @@ void receiveEvent(int bytes) {
   // Get object's points
   if (sentPoint == 0x01 && bytes > 1) {
     x = Wire.read();
-    isUpdated = false;
     Serial.println("Object Found:");
     Serial.print(x);
   }
   else if (sentPoint == 0x02 && bytes > 1) {
     y = Wire.read();
-    isUpdated = true;
     Serial.print(", ");
     Serial.println(y);
     if (looking) {
       searching = false;
-      if (cnt > 20) {Serial.println("don't avoid obst");}
+      if (cnt >= 20) {Serial.println("don't search");}
       cnt = 0;
       getObject();
     }
@@ -171,6 +163,7 @@ void receiveEvent(int bytes) {
 }
 
 void piOn() {
+  // allow Pi to send points
   if (looking == false) {
     looking = true;
     digitalWrite(PiPin, HIGH);
@@ -178,50 +171,39 @@ void piOn() {
 }
 
 void piOff() {
+  // don't allow Pi to send points
   if (looking == true) {
     looking = false;
     digitalWrite(PiPin, LOW);
   }
 }
 
-void requestEvent() {
-  //Wire.write((uint8_t *)&50, sizeof(50));
-  Serial.println("request");
-}
-
 void getObject(){
-  //stop motors
-  //carStop();
   int Speed = 110;
   delay(800);
-  if (y >= h*0.6) {
-    //turn left
-    Serial.println("Stop");
-    carStop();
-    
-    capture(); 
-  }
-  else if (x <= leftTrig) {
+  if (x <= leftTrig) {
     //turn left
     Serial.println("Left");
     carTurnLeft(Speed,Speed);
-    //delay(1000);
-    //carStop();
   } 
   else if (x >= rightTrig ) {
     //turn right
     Serial.println("Right");
     carTurnRight(Speed,Speed);
-    //delay(1000);
-    //carStop();
   } 
   else if (x > leftTrig && x < rightTrig) {
-    //drive forward
-    Serial.println("Forward");
     //see if close to capture
-    carAdvance(Speed,Speed);
-    //delay(1000);
-    //carStop();
+    if (y >= h*0.6) {
+      //stop and capture
+      Serial.println("Stop and capture");
+      carStop();
+      capture();
+    }
+     else {
+      //drive forward
+      Serial.println("Forward");
+      carAdvance(Speed,Speed);
+    }
   } 
   else {
     Serial.println("No Value");
@@ -249,6 +231,7 @@ void capture(){
   turnToZero();
   searching = true;
   looking = true;
+  start = true;
   piOn();
 }
 
@@ -264,7 +247,7 @@ void advance(){
       time += 100;
     }
     else {
-      //hit wall    do something
+      //hit wall    stop
       carStop();
     }
   }
@@ -272,6 +255,7 @@ void advance(){
 
 int getOrient() {
   piOff();
+  // get the current direction
   sensors_event_t event; 
   bno.getEvent(&event);
   Serial.print("X: ");
