@@ -3,14 +3,12 @@ from picamera import PiCamera
 import sys
 import time
 import RPi.GPIO as GPIO
-#import serial
 import smbus
 import cv2
 import numpy as np;
-
-#ser = serial.Serial('/dev/ttyACM0', 9600)
+#start the i2c
 bus = smbus.SMBus(1)
-
+# setup the GPIO
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(10, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
@@ -19,18 +17,14 @@ address = 0x04
 
 # initialize the camera and grab a reference to the raw camera capture
 camera = PiCamera()
-#camera.resolution = (640, 480)
-#camera.resolution = (480, 320)
 camera.resolution = (1024/4, 768/4)
 camera.framerate = 32
 rawCapture = PiRGBArray(camera, size=(1024/4, 768/4))
 
-#lower = (20,100,150)
-#upper = (95,255,255)
-
 ##lower = (10,230,40)
 ##upper = (120,255,250)
 
+# define the color range
 lower = (60,130,50)
 upper = (100,255,250)
 
@@ -41,14 +35,14 @@ time.sleep(0.1)
 for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
     # grab current frame from camera
     image = frame.array
-    #blur image
+    # blur image
     blurred = cv2.GaussianBlur(image, (15,15),0)
     # Make the mask
     hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsv, lower, upper)
     mask = cv2.erode(mask, None, iterations=2)
     mask = cv2.dilate(mask, None, iterations=2)
-
+    #find the object
     cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
     center = None
 
@@ -61,7 +55,7 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
             cv2.circle(image, (int(x), int(y)), int(radius), (0, 255, 255), 2)
             cv2.circle(image, center, 5, (0,0, 255), -1)
             print center
-            #ser.write(str(center))
+            # send the points if the arduino wants them
             if GPIO.input(10):
                 # send the object's points to the Arduino for further use
                 try:
@@ -71,7 +65,7 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
                 except IOError:
                     sys.stderr.write("*** error: sending points ***\n")
             else:
-                sys.stderr.write("*** Points were not sent ***\n")
+                sys.stderr.write("* Points were not sent *\n")
 
 
     # show the frame
