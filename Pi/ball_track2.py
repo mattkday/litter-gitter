@@ -25,7 +25,7 @@ rawCapture = PiRGBArray(camera, size=(1024/4, 768/4))
 ##upper = (120,255,250)
 
 # define the color range
-lower = (60,130,50)
+lower = (50,130,50)
 upper = (100,255,250)
 
 # allow the camera to warmup

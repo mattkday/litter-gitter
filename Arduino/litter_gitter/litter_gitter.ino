@@ -7,7 +7,7 @@
 
 #define irL A0
 #define irR A1
-#define model 2080
+#define model 20150
 #define SLAVE_ADDRESS 0x04
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 SharpIR sharpL(irL, 25, 93, model);
@@ -19,17 +19,19 @@ int y;
 boolean searching = true;
 boolean looking = true;
 boolean start = true;
+boolean Capture = false;
 int cnt = 0;
 int w = 1024/4;
 int h = 768/4;
 int gateUp = 0;
 int gateDown = 90;
-int leftTrig = w*0.2;
-int rightTrig = w*0.8;
-int vertTrig = h*0.6;
-int GateThresh = 60;
-int NormThresh = 40;
+int leftTrig = w*0.4;
+int rightTrig = w*0.6;
+int vertTrig = h*0.8;
+int GateThresh = 85;
+int NormThresh = 55;
 int SlowThresh = NormThresh + 25;
+int GSpeed = 120;
 int distL = sharpL.distance();
 int distR = sharpR.distance();
 int side = 1;            //Left = 0    Right = 1
@@ -70,6 +72,7 @@ void setup(){
 
 void loop(){
   delay(100);
+  myservo.write(gateUp);
   Serial.println("loop");
   cnt++;
   if (cnt ==8 && looking && !searching) {
@@ -79,6 +82,10 @@ void loop(){
   if (cnt>=20 && !searching) {
     searching = true;
     Serial.println("avoid obst again");
+  }
+  if (Capture == true) {
+    capture();
+    Capture = false;
   }
   // searching
   if (searching) {
@@ -126,13 +133,13 @@ void loop(){
         side = 1;
       }
       carStop();
-      carAdvance(155,155);
+      carAdvance(GSpeed,GSpeed);
       piOn();
       Serial.println("search");
     }
     else if (distL <= SlowThresh || distR <= SlowThresh) {
       Serial.println("Slow Down");
-      carAdvance(120,120);
+      carAdvance(100,100);
     }
   }
   piOn();
@@ -164,7 +171,7 @@ void receiveEvent(int bytes) {
 }
 
 void getObject(){
-  int Speed = 110;
+  int Speed = 120;
   delay(800);
   if (x <= leftTrig) {
     //turn left
@@ -182,7 +189,7 @@ void getObject(){
       //stop and capture
       Serial.println("Stop and capture");
       carStop();
-      capture();
+      Capture = true;
     }
      else {
       //drive forward
@@ -195,39 +202,54 @@ void getObject(){
   }
 }
 
-void capture(){
+void capture() {
   piOff();
   searching = false;
   looking = false;
   myservo.write(gateDown);
+  
   turnHome();
+  Serial.println("turn home");
+  distL = sharpL.distance();
+  distR = sharpR.distance();
+  Serial.println(distL);
   while (distL >= GateThresh || distR >= GateThresh) {
     carAdvance(100,100);
+    distL = sharpL.distance();
+    distR = sharpR.distance();
+    Serial.println(distL);
   }
   carStop();
+  Serial.println("turn right");
   turnToRight();
+  distL = sharpL.distance();
+  distR = sharpR.distance();
   while (distL >= GateThresh || distR >= GateThresh) {
     carAdvance(100,100);
+    distL = sharpL.distance();
+    distR = sharpR.distance();
   }
   carStop();
   myservo.write(gateUp);
   carBack(100,100);
   delay(1000);
+  Serial.println("turn zero");
   turnToZero();
   searching = true;
   looking = true;
   start = true;
+  side = 1;
   piOn();
 }
 
 void advance(){
   Serial.println("advance");
   int time = 0;
-  if (time <= 800) {
+  while (time <= 500) {
     distL = sharpL.distance();
     distR = sharpR.distance();
     if (distL > NormThresh || distR > NormThresh) {
-      carAdvance(155,155);
+      carAdvance(GSpeed,GSpeed);
       delay(100);
       time += 100;
     }
@@ -269,12 +291,12 @@ void turnHome() {
   piOff();
   while(true) {
     int currDir = getOrient();
-    int Speed = 100;
+    int Speed = 130;
     if (currDir < 140) {
-      carTurnRight(Speed+50,Speed+50);
+      carTurnRight(Speed+40,Speed+40);
     }
     else if (currDir > 220) {
-      carTurnLeft(Speed+50,Speed+50);
+      carTurnLeft(Speed+40,Speed+40);
     }
     else if (currDir < 180) {
       carTurnRight(Speed,Speed);
@@ -293,12 +315,12 @@ void turnToZero() {
   piOff();
   while(true) {
     int currDir = getOrient();
-    int Speed = 100;
+    int Speed = 130;
     if (currDir < 320 && currDir >= 180) {
-      carTurnRight(Speed+50,Speed+50);
+      carTurnRight(Speed+40,Speed+40);
     }
     else if (currDir > 40 && currDir < 180) {
-      carTurnLeft(Speed+50,Speed+50);
+      carTurnLeft(Speed+40,Speed+40);
     }
     else if (currDir < 360 && currDir >= 180) {
       carTurnRight(Speed,Speed);
@@ -317,13 +339,13 @@ void turnToRight() {
   piOff();
   while(true) {
     int currDir = getOrient();
-    int Speed = 100;
+    int Speed = 130;
     Serial.print(currDir);
     if (currDir < 50 || currDir >= 270) {
-      carTurnRight(Speed+50,Speed+50);
+      carTurnRight(Speed+40,Speed+40);
     }
     else if (currDir > 130 && currDir < 270) {
-      carTurnLeft(Speed+50,Speed+50);
+      carTurnLeft(Speed+40,Speed+40);
     }
     else if (currDir < 90 || currDir >= 270) {
       carTurnRight(Speed,Speed);
@@ -342,12 +364,12 @@ void turnToLeft() {
   piOff();
   while(true) {
     int currDir = getOrient();
-    int Speed = 100;
+    int Speed = 130;
     if (currDir < 230 && currDir >= 90) {
-      carTurnRight(Speed+50,Speed+50);
+      carTurnRight(Speed+40,Speed+40);
     }
     else if (currDir > 310 || currDir < 90) {
-      carTurnLeft(Speed+50,Speed+50);
+      carTurnLeft(Speed+40,Speed+40);
     }
     else if (currDir < 270 && currDir >= 90) {
       carTurnRight(Speed,Speed);
