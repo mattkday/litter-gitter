@@ -26,6 +26,7 @@ int gateUp = 0;
 int gateDown = 90;
 int leftTrig = w*0.2;
 int rightTrig = w*0.8;
+int vertTrig = h*0.6;
 int GateThresh = 60;
 int NormThresh = 40;
 int SlowThresh = NormThresh + 25;
@@ -162,22 +163,6 @@ void receiveEvent(int bytes) {
   }
 }
 
-void piOn() {
-  // allow Pi to send points
-  if (looking == false) {
-    looking = true;
-    digitalWrite(PiPin, HIGH);
-  }
-}
-
-void piOff() {
-  // don't allow Pi to send points
-  if (looking == true) {
-    looking = false;
-    digitalWrite(PiPin, LOW);
-  }
-}
-
 void getObject(){
   int Speed = 110;
   delay(800);
@@ -193,7 +178,7 @@ void getObject(){
   } 
   else if (x > leftTrig && x < rightTrig) {
     //see if close to capture
-    if (y >= h*0.6) {
+    if (y >= vertTrig) {
       //stop and capture
       Serial.println("Stop and capture");
       carStop();
@@ -250,6 +235,22 @@ void advance(){
       //hit wall    stop
       carStop();
     }
+  }
+}
+
+void piOn() {
+  // allow Pi to send points
+  if (looking == false) {
+    looking = true;
+    digitalWrite(PiPin, HIGH);
+  }
+}
+
+void piOff() {
+  // don't allow Pi to send points
+  if (looking == true) {
+    looking = false;
+    digitalWrite(PiPin, LOW);
   }
 }
 
